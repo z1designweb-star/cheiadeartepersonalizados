@@ -1,25 +1,23 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Função auxiliar para obter variáveis de ambiente com segurança no navegador
-const getEnv = (key: string): string => {
-  try {
-    // Tenta acessar process.env (comum em builders como Vite/Webpack/Vercel)
-    if (typeof process !== 'undefined' && process.env && process.env[key]) {
-      return process.env[key] as string;
-    }
-    // Caso não encontre, retorna string vazia em vez de lançar erro
-    return '';
-  } catch (e) {
-    return '';
-  }
-};
+/**
+ * ATENÇÃO: Em projetos sem build (ESM direto no browser), 
+ * o Vercel nem sempre injeta process.env no lado do cliente automaticamente.
+ * 
+ * Se o erro "Failed to fetch" persistir, verifique se as variáveis 
+ * SUPABASE_URL e SUPABASE_ANON_KEY estão acessíveis no console do navegador.
+ */
 
-const supabaseUrl = getEnv('SUPABASE_URL');
-const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY');
+// Acesso direto às variáveis injetadas pelo ambiente
+const supabaseUrl = (typeof process !== 'undefined' && process.env?.SUPABASE_URL) || '';
+const supabaseAnonKey = (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) || '';
 
-// Só tenta criar o cliente se as chaves básicas existirem. 
-// Caso contrário, exporta um objeto dummy ou null para evitar crash imediato no import.
-export const supabase = (supabaseUrl && supabaseAnonKey) 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : createClient('https://placeholder.supabase.co', 'placeholder'); // URL placeholder para não quebrar o import
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn("⚠️ Supabase: Variáveis de ambiente não encontradas. Verifique as configurações no Vercel.");
+}
+
+export const supabase = createClient(
+  supabaseUrl || 'https://sua-url-aqui.supabase.co', 
+  supabaseAnonKey || 'sua-chave-aqui'
+);

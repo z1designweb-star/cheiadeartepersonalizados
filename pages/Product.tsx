@@ -16,7 +16,8 @@ const Product: React.FC = () => {
 
   if (!product) return <div className="p-20 text-center">Produto não encontrado.</div>;
 
-  const department = DEPARTMENTS.find(d => d.id === product.departmentId);
+  // Fix: Using department_id instead of departmentId to match Product interface
+  const department = DEPARTMENTS.find(d => d.id === product.department_id);
 
   return (
     <div className="container mx-auto px-4 py-8 pb-24">
@@ -32,8 +33,9 @@ const Product: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Gallery */}
         <div className="rounded-xl overflow-hidden bg-gray-50 aspect-square">
+          {/* Fix: Using image_url instead of image to match Product interface */}
           <img 
-            src={product.image} 
+            src={product.image_url} 
             alt={product.name} 
             className="w-full h-full object-cover"
           />

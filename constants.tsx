@@ -15,13 +15,21 @@ const generateProducts = (): Product[] => {
   const products: Product[] = [];
   DEPARTMENTS.forEach((dept) => {
     for (let i = 1; i <= 6; i++) {
+      // Fix: Used correct property names and added missing required fields from Product interface
       products.push({
         id: `${dept.id}-${i}`,
         name: `${dept.name} Artesanal ${i}`,
         price: Math.floor(Math.random() * (150 - 30) + 30) + 0.9,
-        image: `https://picsum.photos/seed/${dept.id}-${i}/400/500`,
-        departmentId: dept.id,
-        description: `Um produto exclusivo da linha ${dept.name}, feito com as melhores matérias-primas para perfumar e decorar seu ambiente com carinho e arte.`
+        image_url: `https://picsum.photos/seed/${dept.id}-${i}/400/500`,
+        department_id: dept.id,
+        description: `Um produto exclusivo da linha ${dept.name}, feito com as melhores matérias-primas para perfumar e decorar seu ambiente com carinho e arte.`,
+        models: [],
+        aromas: [],
+        weight_grams: 0,
+        height_cm: 0,
+        width_cm: 0,
+        length_cm: 0,
+        variations: []
       });
     }
   });

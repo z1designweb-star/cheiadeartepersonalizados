@@ -6,6 +6,9 @@ import Footer from './components/Footer.tsx';
 import Home from './pages/Home.tsx';
 import Department from './pages/Department.tsx';
 import Product from './pages/Product.tsx';
+import AdminLogin from './pages/Admin/Login.tsx';
+import AdminDashboard from './pages/Admin/Dashboard.tsx';
+import ProductForm from './pages/Admin/ProductForm.tsx';
 
 const App: React.FC = () => {
   return (
@@ -17,6 +20,13 @@ const App: React.FC = () => {
             <Route path="/" element={<Home />} />
             <Route path="/departamento/:id" element={<Department />} />
             <Route path="/produto/:id" element={<Product />} />
+            
+            {/* Rotas Administrativas */}
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/produtos/novo" element={<ProductForm />} />
+            <Route path="/admin/produtos/editar/:id" element={<ProductForm />} />
           </Routes>
         </main>
         <Footer />

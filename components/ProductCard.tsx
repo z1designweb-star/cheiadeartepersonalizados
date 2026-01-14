@@ -11,8 +11,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <div className="group relative bg-white">
       <Link to={`/produto/${product.id}`} className="block overflow-hidden rounded-lg aspect-[4/5] bg-gray-100">
+        {/* Fix: Using image_url instead of image to match Product interface */}
         <img
-          src={product.image}
+          src={product.image_url}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />

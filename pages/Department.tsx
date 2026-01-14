@@ -14,7 +14,8 @@ const Department: React.FC = () => {
   useEffect(() => {
     const dept = DEPARTMENTS.find(d => d.id === id);
     setDepartment(dept);
-    setProducts(ALL_PRODUCTS.filter(p => p.departmentId === id));
+    // Fix: Using department_id instead of departmentId to match Product interface
+    setProducts(ALL_PRODUCTS.filter(p => p.department_id === id));
     window.scrollTo(0, 0);
   }, [id]);
 

@@ -1,5 +1,5 @@
 
-import { Department, Product } from './types';
+import { Department, Product } from './types.ts';
 
 export const DEPARTMENTS: Department[] = [
   { id: 'velas-religiosas', name: 'Velas Religiosas', image: 'https://images.unsplash.com/photo-1602850457221-8740f9074092?auto=format&fit=crop&q=80&w=400' },

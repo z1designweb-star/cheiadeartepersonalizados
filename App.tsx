@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import Home from './pages/Home';
-import Department from './pages/Department';
-import Product from './pages/Product';
+import Header from './components/Header.tsx';
+import Footer from './components/Footer.tsx';
+import Home from './pages/Home.tsx';
+import Department from './pages/Department.tsx';
+import Product from './pages/Product.tsx';
 
 const App: React.FC = () => {
   return (

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Menu, X, ShoppingBag } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { DEPARTMENTS } from '../constants';
+import { DEPARTMENTS } from '../constants.tsx';
 
 const Header: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);

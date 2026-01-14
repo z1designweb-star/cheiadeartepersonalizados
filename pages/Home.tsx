@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { DEPARTMENTS, FEATURED_PRODUCTS } from '../constants';
-import ProductCard from '../components/ProductCard';
+import { DEPARTMENTS, FEATURED_PRODUCTS } from '../constants.tsx';
+import ProductCard from '../components/ProductCard.tsx';
 
 const Home: React.FC = () => {
   return (

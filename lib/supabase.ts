@@ -2,22 +2,21 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * ATENÇÃO: Em projetos sem build (ESM direto no browser), 
- * o Vercel nem sempre injeta process.env no lado do cliente automaticamente.
- * 
- * Se o erro "Failed to fetch" persistir, verifique se as variáveis 
- * SUPABASE_URL e SUPABASE_ANON_KEY estão acessíveis no console do navegador.
+ * No Vite (usado pelo Vercel), variáveis de ambiente devem:
+ * 1. Começar com VITE_ (ex: VITE_SUPABASE_URL)
+ * 2. Ser acessadas via process.env
  */
 
-// Acesso direto às variáveis injetadas pelo ambiente
-const supabaseUrl = (typeof process !== 'undefined' && process.env?.SUPABASE_URL) || '';
-const supabaseAnonKey = (typeof process !== 'undefined' && process.env?.SUPABASE_ANON_KEY) || '';
+// Fix: Using process.env instead of import.meta.env to resolve "Property 'env' does not exist on type 'ImportMeta'"
+const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("⚠️ Supabase: Variáveis de ambiente não encontradas. Verifique as configurações no Vercel.");
+  console.warn("⚠️ Supabase: Variáveis VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY não encontradas.");
+  console.log("Dica: No painel do Vercel, renomeie as variáveis para incluir o prefixo VITE_");
 }
 
 export const supabase = createClient(
-  supabaseUrl || 'https://sua-url-aqui.supabase.co', 
-  supabaseAnonKey || 'sua-chave-aqui'
+  supabaseUrl || 'https://placeholder-url.supabase.co',
+  supabaseAnonKey || 'placeholder-key'
 );

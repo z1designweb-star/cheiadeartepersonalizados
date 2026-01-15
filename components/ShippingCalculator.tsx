@@ -6,13 +6,16 @@ import { calculateShipping } from '../lib/melhorenvio.ts';
 import { ShippingOption } from '../types.ts';
 
 const ShippingCalculator: React.FC = () => {
-  const { cart, destinationCep, setDestinationCep, selectedShipping, setSelectedShipping } = useCart();
+  const { cart, cartTotal, destinationCep, setDestinationCep, selectedShipping, setSelectedShipping } = useCart();
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<ShippingOption[]>([]);
   const [error, setError] = useState('');
 
+  const logoUrl = "https://cdn-icons-png.flaticon.com/512/869/869636.png"; // Ícone de loja/entrega própria
+
   const handleCalculate = async () => {
-    if (destinationCep.replace(/\D/g, '').length !== 8) {
+    const cleanCep = destinationCep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) {
       setError('CEP inválido');
       return;
     }
@@ -20,6 +23,7 @@ const ShippingCalculator: React.FC = () => {
     setError('');
     setLoading(true);
     
+    // 1. Buscar opções do Melhor Envio
     const results = await calculateShipping({
       to_cep: destinationCep,
       products: cart.map(item => ({
@@ -33,26 +37,68 @@ const ShippingCalculator: React.FC = () => {
       }))
     });
 
-    if (results.length === 0) {
-      setError('Não foi possível calcular o frete para este CEP.');
-    } else {
-      // Formatar resultados para o nosso tipo ShippingOption
-      const formattedOptions: ShippingOption[] = results.map((opt: any) => ({
-        id: opt.id,
-        name: opt.name,
-        price: parseFloat(opt.price),
-        delivery_time: opt.delivery_time,
+    // 2. Formatar resultados da API
+    const apiOptions: ShippingOption[] = results.map((opt: any) => ({
+      id: opt.id,
+      name: opt.name,
+      price: parseFloat(opt.price),
+      delivery_time: opt.delivery_time,
+      company: {
+        name: opt.company.name,
+        picture: opt.company.picture
+      }
+    }));
+
+    // 3. Gerar Opções Manuais/Fixas
+    const customOptions: ShippingOption[] = [];
+
+    // Opção: Retirada Local (Sempre disponível)
+    customOptions.push({
+      id: 'retirada-local',
+      name: 'Retirada Local',
+      price: 0,
+      delivery_time: 1,
+      company: {
+        name: 'Loja Física',
+        picture: logoUrl
+      }
+    });
+
+    // Opção: Entrega Local Salvador (CEPs que começam com 40 ou 41)
+    if (cleanCep.startsWith('40') || cleanCep.startsWith('41')) {
+      customOptions.push({
+        id: 'entrega-salvador',
+        name: 'Entrega Local (Salvador/BA)',
+        price: 15,
+        delivery_time: 2,
         company: {
-          name: opt.company.name,
-          picture: opt.company.picture
+          name: 'Cheia de Arte',
+          picture: logoUrl
         }
-      }));
-      setOptions(formattedOptions);
+      });
     }
+
+    // Opção: Frete Grátis (Para compras > R$ 250)
+    if (cartTotal >= 250) {
+      customOptions.push({
+        id: 'frete-gratis',
+        name: 'Frete Grátis (Promoção)',
+        price: 0,
+        delivery_time: 5,
+        company: {
+          name: 'Cheia de Arte',
+          picture: logoUrl
+        }
+      });
+    }
+
+    // Unificar e ordenar por preço
+    const allOptions = [...customOptions, ...apiOptions].sort((a, b) => a.price - b.price);
+    
+    setOptions(allOptions);
     setLoading(false);
   };
 
-  // Auto-calcular se já houver CEP salvo ao abrir o carrinho
   useEffect(() => {
     if (destinationCep.replace(/\D/g, '').length === 8 && cart.length > 0 && options.length === 0) {
       handleCalculate();
@@ -100,18 +146,22 @@ const ShippingCalculator: React.FC = () => {
                 : 'border-gray-100 hover:border-gray-200 bg-white'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded bg-white border border-gray-50 p-1 flex items-center justify-center">
+              <div className="flex items-center gap-3 text-left">
+                <div className="w-8 h-8 rounded bg-white border border-gray-50 p-1 flex items-center justify-center shrink-0">
                   <img src={option.company.picture} alt={option.company.name} className="max-w-full max-h-full object-contain" />
                 </div>
-                <div className="text-left">
-                  <p className="text-xs font-bold text-gray-800">{option.company.name} {option.name}</p>
-                  <p className="text-[10px] text-gray-500">Até {option.delivery_time} dias úteis</p>
+                <div>
+                  <p className="text-xs font-bold text-gray-800 leading-tight">
+                    {option.company.name === 'Loja Física' || option.company.name === 'Cheia de Arte' 
+                      ? option.name 
+                      : `${option.company.name} ${option.name}`}
+                  </p>
+                  <p className="text-[10px] text-gray-500">Prazo: {option.delivery_time} {option.delivery_time === 1 ? 'dia útil' : 'dias úteis'}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-gray-900">
-                  {option.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                <span className={`text-sm font-bold ${option.price === 0 ? 'text-green-500' : 'text-gray-900'}`}>
+                  {option.price === 0 ? 'Grátis' : option.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </span>
                 <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${
                   selectedShipping?.id === option.id ? 'bg-[#f4d3d2] border-[#f4d3d2]' : 'border-gray-200'

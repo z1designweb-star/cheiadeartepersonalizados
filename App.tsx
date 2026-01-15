@@ -13,6 +13,7 @@ import ProductForm from './pages/Admin/ProductForm.tsx';
 import Login from './pages/Auth/Login.tsx';
 import Signup from './pages/Auth/Signup.tsx';
 import ForgotPassword from './pages/Auth/ForgotPassword.tsx';
+import Profile from './pages/Auth/Profile.tsx';
 import { CartProvider } from './context/CartContext.tsx';
 import CartSidebar from './components/CartSidebar.tsx';
 
@@ -33,6 +34,7 @@ const App: React.FC = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/cadastro" element={<Signup />} />
               <Route path="/esqueci-senha" element={<ForgotPassword />} />
+              <Route path="/perfil" element={<Profile />} />
               
               {/* Rotas de Finalização Unificadas */}
               <Route path="/sucesso" element={<CheckoutResult />} />

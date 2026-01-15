@@ -1,15 +1,18 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Product } from '../types.ts';
+import { Product, Variation } from '../types.ts';
 
-interface CartItem extends Product {
+export interface CartItem extends Product {
   quantity: number;
+  selectedModel?: string;
+  selectedAroma?: string;
+  displayPrice: number; // Preço efetivo da variação
 }
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product) => void;
-  removeFromCart: (productId: string) => void;
+  addToCart: (product: Product, quantity: number, variation?: Variation) => void;
+  removeFromCart: (uniqueId: string) => void;
   clearCart: () => void;
   cartTotal: number;
   cartCount: number;
@@ -23,37 +26,50 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Carregar do localStorage
   useEffect(() => {
-    const savedCart = localStorage.getItem('cheiadearte_cart');
+    const savedCart = localStorage.getItem('cheiadearte_cart_v2');
     if (savedCart) setCart(JSON.parse(savedCart));
   }, []);
 
-  // Salvar no localStorage
   useEffect(() => {
-    localStorage.setItem('cheiadearte_cart', JSON.stringify(cart));
+    localStorage.setItem('cheiadearte_cart_v2', JSON.stringify(cart));
   }, [cart]);
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, quantity: number, variation?: Variation) => {
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id);
-      if (existing) {
-        return prev.map(item => 
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        );
+      // Identificador único considerando id + modelo + aroma
+      const itemKey = `${product.id}-${variation?.model || 'none'}-${variation?.aroma || 'none'}`;
+      
+      const existingIndex = prev.findIndex(item => 
+        `${item.id}-${item.selectedModel || 'none'}-${item.selectedAroma || 'none'}` === itemKey
+      );
+
+      if (existingIndex > -1) {
+        const newCart = [...prev];
+        newCart[existingIndex].quantity += quantity;
+        return newCart;
       }
-      return [...prev, { ...product, quantity: 1 }];
+
+      return [...prev, { 
+        ...product, 
+        quantity, 
+        selectedModel: variation?.model,
+        selectedAroma: variation?.aroma,
+        displayPrice: variation ? variation.price : product.price
+      }];
     });
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.id !== productId));
+  const removeFromCart = (uniqueId: string) => {
+    setCart(prev => prev.filter(item => 
+      `${item.id}-${item.selectedModel || 'none'}-${item.selectedAroma || 'none'}` !== uniqueId
+    ));
   };
 
   const clearCart = () => setCart([]);
 
-  const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const cartTotal = cart.reduce((acc, item) => acc + (item.displayPrice * item.quantity), 0);
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (

@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
-import { X, Trash2, ShoppingBag, Loader2, CreditCard } from 'lucide-react';
+// Adicionando ShieldCheck ao conjunto de ícones importados do lucide-react
+import { X, Trash2, ShoppingBag, Loader2, CreditCard, ShieldCheck } from 'lucide-react';
 import { useCart } from '../context/CartContext.tsx';
 import { createCheckoutPreference } from '../lib/mercadopago.ts';
 import { formatDriveUrl } from '../lib/utils.ts';
@@ -17,14 +18,13 @@ const CartSidebar: React.FC = () => {
       const checkoutUrl = await createCheckoutPreference(
         cart.map(item => ({
           id: item.id,
-          title: item.name,
-          unit_price: item.price,
+          title: `${item.name}${item.selectedModel ? ` - ${item.selectedModel}` : ''}${item.selectedAroma ? ` (${item.selectedAroma})` : ''}`,
+          unit_price: item.displayPrice,
           quantity: item.quantity,
           picture_url: formatDriveUrl(item.image_url)
         }))
       );
       
-      // Redireciona para o Mercado Pago
       window.location.href = checkoutUrl;
     } catch (error) {
       alert("Houve um erro ao processar o checkout. Tente novamente.");
@@ -61,27 +61,38 @@ const CartSidebar: React.FC = () => {
                 </button>
               </div>
             ) : (
-              cart.map((item) => (
-                <div key={item.id} className="flex gap-4 items-center">
-                  <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0">
-                    <img src={formatDriveUrl(item.image_url)} alt={item.name} className="w-full h-full object-cover" />
+              cart.map((item) => {
+                const uniqueId = `${item.id}-${item.selectedModel || 'none'}-${item.selectedAroma || 'none'}`;
+                return (
+                  <div key={uniqueId} className="flex gap-4 items-center animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="w-20 h-20 bg-gray-50 rounded-lg overflow-hidden flex-shrink-0 border border-gray-100">
+                      <img src={formatDriveUrl(item.image_url)} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="flex-grow">
+                      <h3 className="text-sm font-bold text-gray-900 leading-tight">{item.name}</h3>
+                      {(item.selectedModel || item.selectedAroma) && (
+                        <p className="text-[10px] text-gray-400 uppercase font-semibold mt-1">
+                          {item.selectedModel}{item.selectedModel && item.selectedAroma ? ' • ' : ''}{item.selectedAroma}
+                        </p>
+                      )}
+                      <div className="flex justify-between items-center mt-2">
+                        <p className="text-sm text-gray-500 font-medium">{item.quantity}x {item.displayPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                        <p className="text-sm font-bold text-gray-900">{(item.displayPrice * item.quantity).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => removeFromCart(uniqueId)} className="p-2 text-gray-300 hover:text-red-500 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                  <div className="flex-grow">
-                    <h3 className="text-sm font-medium text-gray-900">{item.name}</h3>
-                    <p className="text-sm text-gray-500">{item.quantity}x {item.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
-                  </div>
-                  <button onClick={() => removeFromCart(item.id)} className="text-gray-400 hover:text-red-500 transition-colors">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 
           {cart.length > 0 && (
             <div className="p-6 border-t bg-gray-50">
               <div className="flex justify-between items-center mb-6">
-                <span className="text-gray-600 font-medium">Subtotal</span>
+                <span className="text-gray-600 font-medium">Total da Compra</span>
                 <span className="text-2xl font-bold text-gray-900">
                   {cartTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                 </span>
@@ -97,13 +108,14 @@ const CartSidebar: React.FC = () => {
                 ) : (
                   <>
                     <CreditCard className="w-5 h-5" />
-                    Finalizar Compra
+                    Pagar com Mercado Pago
                   </>
                 )}
               </button>
-              <p className="text-center text-[10px] text-gray-400 mt-4 uppercase tracking-widest">
-                Pagamento processado via Mercado Pago
-              </p>
+              <div className="flex justify-center items-center gap-2 mt-4 opacity-40">
+                <ShieldCheck className="w-3 h-3" />
+                <span className="text-[10px] uppercase font-bold tracking-widest">Ambiente 100% Seguro</span>
+              </div>
             </div>
           )}
         </div>

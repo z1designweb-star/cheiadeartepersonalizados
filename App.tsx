@@ -9,29 +9,38 @@ import Product from './pages/Product.tsx';
 import AdminLogin from './pages/Admin/Login.tsx';
 import AdminDashboard from './pages/Admin/Dashboard.tsx';
 import ProductForm from './pages/Admin/ProductForm.tsx';
+import { CartProvider } from './context/CartContext.tsx';
+import CartSidebar from './components/CartSidebar.tsx';
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/departamento/:id" element={<Department />} />
-            <Route path="/produto/:id" element={<Product />} />
-            
-            {/* Rotas Administrativas */}
-            <Route path="/admin" element={<AdminLogin />} />
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/produtos/novo" element={<ProductForm />} />
-            <Route path="/admin/produtos/editar/:id" element={<ProductForm />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
-    </Router>
+    <CartProvider>
+      <Router>
+        <div className="min-h-screen flex flex-col">
+          <Header />
+          <CartSidebar />
+          <main className="flex-grow">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/departamento/:id" element={<Department />} />
+              <Route path="/produto/:id" element={<Product />} />
+              
+              {/* Rotas Administrativas */}
+              <Route path="/admin" element={<AdminLogin />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/produtos/novo" element={<ProductForm />} />
+              <Route path="/admin/produtos/editar/:id" element={<ProductForm />} />
+              
+              {/* Feedback de Pagamento (Páginas simples para demonstração) */}
+              <Route path="/sucesso" element={<div className="p-20 text-center font-serif text-3xl text-green-600">Pagamento Realizado com Sucesso! 🌿</div>} />
+              <Route path="/erro" element={<div className="p-20 text-center font-serif text-3xl text-red-500">Houve um problema no pagamento.</div>} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </CartProvider>
   );
 };
 

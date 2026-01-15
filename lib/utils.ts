@@ -2,16 +2,18 @@
 export const formatDriveUrl = (url: string): string => {
   if (!url) return '';
   
-  // Se for um link do Google Drive, tenta extrair o ID
-  if (url.includes('drive.google.com')) {
-    // Padrão 1: /d/ID/view
-    // Padrão 2: ?id=ID
-    const idMatch = url.match(/\/d\/(.+?)\//) || url.match(/id=(.+?)(&|$)/);
+  const driveDomain = 'drive.google.com';
+  
+  if (url.includes(driveDomain)) {
+    // Regex melhorada para pegar o ID entre /d/ e a próxima barra ou fim da string
+    // E também suportar o formato ?id=
+    const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
     const id = idMatch ? idMatch[1] : null;
     
     if (id) {
-      // Retorna o link de visualização direta
-      return `https://drive.google.com/uc?export=view&id=${id}`;
+      // O endpoint 'thumbnail' é muito mais confiável para exibição em sites
+      // sz=w1000 define a largura máxima para garantir boa qualidade
+      return `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
     }
   }
   

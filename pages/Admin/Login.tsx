@@ -1,4 +1,5 @@
 
+// Adicionando import de React para resolver erros de namespace 'React' (FC, FormEvent)
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase.ts';
 import { useNavigate } from 'react-router-dom';
@@ -19,8 +20,7 @@ const AdminLogin: React.FC = () => {
 
     try {
       if (isSignUp) {
-        // CADASTRO: Isso cria o usuário e dispara o Trigger SQL para a tabela 'profiles'
-        const { data, error } = await supabase.auth.signUp({ 
+        const { error } = await supabase.auth.signUp({ 
           email, 
           password,
           options: { emailRedirectTo: window.location.origin }
@@ -30,39 +30,48 @@ const AdminLogin: React.FC = () => {
         
         setMessage({
           type: 'success', 
-          text: 'Solicitação enviada! Se você for o primeiro usuário, seu acesso já está liberado. Tente fazer login.'
+          text: 'Solicitação enviada! Verifique seu e-mail para confirmar a conta antes de tentar logar.'
         });
-        setIsSignUp(false); // Volta para o login após cadastrar
+        setIsSignUp(false);
       } else {
-        // LOGIN: Só funciona para usuários já existentes
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         
-        // Verificar perfil
+        if (!data.user) throw new Error("Usuário não encontrado.");
+
+        // Tentar buscar o perfil
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('is_approved')
-          .eq('id', data.user?.id)
+          .select('is_approved, is_admin')
+          .eq('id', data.user.id)
           .single();
 
-        if (profileError) throw new Error("Perfil não encontrado. Você já se cadastrou clicando em 'Solicite aqui'?");
+        if (profileError) {
+          console.error("Erro ao buscar perfil:", profileError);
+          // Se der erro 500 ou similar, é provável que faltem as políticas de RLS
+          throw new Error("Erro de permissão no banco de dados. Verifique se as políticas RLS foram configuradas no SQL Editor do Supabase.");
+        }
 
         if (profile?.is_approved) {
           navigate('/admin/dashboard');
         } else {
           setMessage({
             type: 'error', 
-            text: 'Sua conta ainda não foi aprovada pelo administrador.'
+            text: 'Sua conta ainda não foi aprovada por um administrador.'
           });
           await supabase.auth.signOut();
         }
       }
     } catch (err: any) {
-      console.error("Erro na autenticação:", err);
+      console.error("Erro detalhado:", err);
       let errorText = err.message;
-      if (err.message === 'Failed to fetch') {
-        errorText = "Erro de conexão: Verifique se o SUPABASE_URL está correto no Vercel ou se há um ad-blocker ativo.";
+      
+      if (err.status === 400 || err.message?.includes('Invalid login credentials')) {
+        errorText = "E-mail ou senha incorretos.";
+      } else if (err.message?.includes('Database error')) {
+        errorText = "Erro no banco de dados. Verifique as permissões RLS no Supabase.";
       }
+
       setMessage({ type: 'error', text: errorText });
     } finally {
       setLoading(false);
@@ -85,7 +94,7 @@ const AdminLogin: React.FC = () => {
             <input
               type="email"
               required
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#f4d3d2] focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#f4d3d2] outline-none transition-all"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="seu@email.com"
@@ -96,7 +105,7 @@ const AdminLogin: React.FC = () => {
             <input
               type="password"
               required
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#f4d3d2] focus:border-transparent outline-none transition-all"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[#f4d3d2] outline-none transition-all"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
@@ -107,16 +116,14 @@ const AdminLogin: React.FC = () => {
             disabled={loading}
             className="w-full py-4 bg-[#f4d3d2] text-white rounded-lg font-bold hover:bg-[#e6c1c0] transition-colors disabled:opacity-50 shadow-md flex items-center justify-center"
           >
-            {loading ? (
-              <span className="flex items-center"><svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processando...</span>
-            ) : isSignUp ? 'Enviar Solicitação' : 'Entrar'}
+            {loading ? 'Carregando...' : isSignUp ? 'Enviar Solicitação' : 'Entrar'}
           </button>
         </form>
 
         {message && (
-          <div className={`mt-6 p-4 rounded-lg flex items-start gap-3 ${message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`}>
-            {message.type === 'error' ? <AlertCircle className="w-5 h-5 flex-shrink-0" /> : <CheckCircle2 className="w-5 h-5 flex-shrink-0" />}
-            <p className="text-sm font-medium leading-tight">{message.text}</p>
+          <div className={`mt-6 p-4 rounded-lg flex items-start gap-3 ${message.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+            {message.type === 'error' ? <AlertCircle className="w-5 h-5 mt-0.5" /> : <CheckCircle2 className="w-5 h-5 mt-0.5" />}
+            <p className="text-sm font-medium">{message.text}</p>
           </div>
         )}
 
@@ -126,7 +133,7 @@ const AdminLogin: React.FC = () => {
               setIsSignUp(!isSignUp);
               setMessage(null);
             }}
-            className="text-gray-500 text-sm hover:text-[#f4d3d2] font-medium transition-colors"
+            className="text-gray-500 text-sm hover:text-[#f4d3d2] font-medium"
           >
             {isSignUp ? 'Já tem conta? Faça login aqui' : 'Não tem acesso? Solicite aqui'}
           </button>

@@ -2,18 +2,21 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * No Vite (usado pelo Vercel), variáveis de ambiente devem:
- * 1. Começar com VITE_ (ex: VITE_SUPABASE_URL)
- * 2. Ser acessadas via process.env
+ * No Vite, as variáveis de ambiente DEVEM:
+ * 1. Começar com o prefixo VITE_ (Ex: VITE_SUPABASE_URL)
+ * 2. Ser acessadas via import.meta.env.VITE_...
  */
 
-// Fix: Using process.env instead of import.meta.env to resolve "Property 'env' does not exist on type 'ImportMeta'"
-const supabaseUrl = process.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || '';
+// Usamos uma abordagem segura para evitar erros de compilação
+const env = (import.meta as any).env || {};
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn("⚠️ Supabase: Variáveis VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY não encontradas.");
-  console.log("Dica: No painel do Vercel, renomeie as variáveis para incluir o prefixo VITE_");
+const supabaseUrl = env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || '';
+
+// Log de diagnóstico para ajudar você no console do navegador
+if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'https://placeholder-url.supabase.co') {
+  console.warn("⚠️ Supabase: Variáveis não detectadas pelo Vite.");
+  console.log("Verifique se no Vercel os nomes começam com VITE_ e se você fez um REDEPLOY.");
 }
 
 export const supabase = createClient(

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase.ts';
-import { Loader2, ArrowLeft, User, IdentificationCard, Calendar, Phone, MapPin, Mail, Lock } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 
 const Signup: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -150,6 +150,14 @@ const Signup: React.FC = () => {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-gray-400 uppercase ml-1">Bairro</label>
                 <input required className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-[#f4d3d2] focus:bg-white" value={formData.address_neighborhood} onChange={e => setFormData({...formData, address_neighborhood: e.target.value})} />
+              </div>
+              <div className="md:col-span-2 space-y-1">
+                <label className="text-xs font-bold text-gray-400 uppercase ml-1">Cidade</label>
+                <input required className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-[#f4d3d2] focus:bg-white" value={formData.address_city} onChange={e => setFormData({...formData, address_city: e.target.value})} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-gray-400 uppercase ml-1">UF (Estado)</label>
+                <input required maxLength={2} placeholder="Ex: BA" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-[#f4d3d2] focus:bg-white uppercase" value={formData.address_state} onChange={e => setFormData({...formData, address_state: e.target.value.toUpperCase()})} />
               </div>
             </div>
           </section>

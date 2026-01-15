@@ -53,15 +53,24 @@ const Signup: React.FC = () => {
 
     try {
       // 1. Criar usuário no Auth
+      // Passamos os metadados para garantir que fiquem registrados no Auth também
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.full_name,
+          }
+        }
       });
 
       if (authError) throw authError;
       if (!authData.user) throw new Error("Erro ao criar usuário.");
 
-      // 2. Criar perfil no DB (profiles)
+      // Pequena pausa para o banco processar a autenticação
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 2. Criar ou atualizar perfil no DB (profiles)
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: authData.user.id,
         email: formData.email,
@@ -76,13 +85,16 @@ const Signup: React.FC = () => {
         address_neighborhood: formData.address_neighborhood,
         address_city: formData.address_city,
         address_state: formData.address_state,
-        is_approved: true, // Clientes são pré-aprovados para compra
+        is_approved: true,
         is_admin: false
-      });
+      }, { onConflict: 'id' });
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Erro detalhado no Profile:", profileError);
+        throw new Error("Sua conta foi criada, mas houve um erro ao salvar seus dados. Por favor, tente fazer login e completar seu perfil.");
+      }
 
-      alert("Conta criada com sucesso! Verifique seu e-mail para confirmar o acesso.");
+      alert("Conta criada com sucesso!");
       navigate('/login');
     } catch (err: any) {
       setError(err.message);

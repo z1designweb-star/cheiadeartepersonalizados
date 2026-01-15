@@ -1,17 +1,43 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { DEPARTMENTS, FEATURED_PRODUCTS } from '../constants.tsx';
+import { DEPARTMENTS } from '../constants.tsx';
+import { Product } from '../types.ts';
+import { supabase } from '../lib/supabase.ts';
 import ProductCard from '../components/ProductCard.tsx';
+import { Loader2 } from 'lucide-react';
 
 const Home: React.FC = () => {
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFeatured = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(6);
+        
+        if (error) throw error;
+        if (data) setFeaturedProducts(data);
+      } catch (err) {
+        console.error("Erro ao carregar produtos:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeatured();
+  }, []);
+
   return (
     <div className="space-y-24 pb-24">
-      {/* Hero Section Atualizada */}
+      {/* Hero Section */}
       <section className="bg-[#f4d3d2] min-h-[70vh] flex items-center py-16 md:py-0">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            {/* Lado Esquerdo: Texto */}
             <div className="order-2 md:order-1">
               <h1 className="text-5xl md:text-7xl font-serif font-bold text-gray-900 leading-tight mb-6">
                 Cheia de Arte: <br/>
@@ -28,9 +54,8 @@ const Home: React.FC = () => {
               </Link>
             </div>
 
-            {/* Lado Direito: Imagem 1:1 */}
             <div className="order-1 md:order-2 flex justify-center md:justify-end">
-              <div className="w-full max-w-md aspect-square rounded-2xl overflow-hidden shadow-2xl border-8 border-white/30 transition-transform hover:scale-[1.02] duration-500">
+              <div className="w-full max-w-md aspect-square rounded-2xl overflow-hidden shadow-2xl border-8 border-white/30">
                 <img 
                   src="https://images.unsplash.com/photo-1602874801007-bd458bb1b8b6?auto=format&fit=crop&q=80&w=800" 
                   alt="Produto Cheia de Arte" 
@@ -76,19 +101,26 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-end mb-12">
             <div>
-              <h2 className="text-4xl font-serif font-bold text-gray-900">Destaques</h2>
-              <p className="text-gray-600 mt-2">Nossos produtos mais amados por você.</p>
+              <h2 className="text-4xl font-serif font-bold text-gray-900">Novidades</h2>
+              <p className="text-gray-600 mt-2">Os últimos produtos adicionados à nossa loja.</p>
             </div>
-            <Link to="/departamento/velas-aromaticas" className="text-[#f4d3d2] font-medium border-b-2 border-[#f4d3d2] pb-1 hover:opacity-70 transition-opacity">
-              Ver todos
-            </Link>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {FEATURED_PRODUCTS.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="w-10 h-10 animate-spin text-[#f4d3d2]" />
+            </div>
+          ) : featuredProducts.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {featuredProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 text-gray-500 italic">
+              Ainda não temos produtos cadastrados.
+            </div>
+          )}
         </div>
       </section>
     </div>

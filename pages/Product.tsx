@@ -1,22 +1,46 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ALL_PRODUCTS, DEPARTMENTS } from '../constants';
-import { Product as ProductType } from '../types';
-import { ChevronRight, Home, ShieldCheck, Truck, RefreshCcw } from 'lucide-react';
+import { DEPARTMENTS } from '../constants.tsx';
+import { Product as ProductType } from '../types.ts';
+import { supabase } from '../lib/supabase.ts';
+import { ChevronRight, Home, ShieldCheck, Truck, RefreshCcw, Loader2 } from 'lucide-react';
 
 const Product: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<ProductType | undefined>();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setProduct(ALL_PRODUCTS.find(p => p.id === id));
-    window.scrollTo(0, 0);
+    const fetchProduct = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) throw error;
+        if (data) setProduct(data);
+      } catch (err) {
+        console.error("Erro ao carregar produto:", err);
+      } finally {
+        setLoading(false);
+      }
+      window.scrollTo(0, 0);
+    };
+
+    fetchProduct();
   }, [id]);
 
-  if (!product) return <div className="p-20 text-center">Produto não encontrado.</div>;
+  if (loading) return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <Loader2 className="w-12 h-12 animate-spin text-[#f4d3d2]" />
+    </div>
+  );
 
-  // Fix: Using department_id instead of departmentId to match Product interface
+  if (!product) return <div className="p-20 text-center font-serif text-2xl text-red-500">Produto não encontrado.</div>;
+
   const department = DEPARTMENTS.find(d => d.id === product.department_id);
 
   return (
@@ -32,8 +56,7 @@ const Product: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Gallery */}
-        <div className="rounded-xl overflow-hidden bg-gray-50 aspect-square">
-          {/* Fix: Using image_url instead of image to match Product interface */}
+        <div className="rounded-xl overflow-hidden bg-gray-50 aspect-square shadow-inner">
           <img 
             src={product.image_url} 
             alt={product.name} 
@@ -49,18 +72,48 @@ const Product: React.FC = () => {
           </p>
           
           <div className="border-t border-b border-gray-100 py-6 mb-8">
-            <p className="text-gray-600 leading-relaxed">
+            <p className="text-gray-600 leading-relaxed whitespace-pre-line">
               {product.description}
             </p>
           </div>
+
+          {/* Opções de Aroma/Modelo se existirem */}
+          {(product.aromas?.length > 0 || product.models?.length > 0) && (
+            <div className="mb-8 space-y-4">
+              {product.aromas?.length > 0 && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Aromas Disponíveis</label>
+                  <div className="flex flex-wrap gap-2">
+                    {product.aromas.map(a => (
+                      <span key={a} className="px-3 py-1 bg-gray-100 rounded-full text-xs font-medium text-gray-600">{a}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {product.models?.length > 0 && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Modelos Disponíveis</label>
+                  <div className="flex flex-wrap gap-2">
+                    {product.models.map(m => (
+                      <span key={m} className="px-3 py-1 bg-[#f4d3d2]/10 text-[#f4d3d2] rounded-full text-xs font-bold border border-[#f4d3d2]/20">{m}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-4 mb-8">
             <button className="w-full py-4 bg-[#f4d3d2] text-white rounded-lg font-bold text-lg hover:bg-[#e6c1c0] transition-colors shadow-lg">
               Adicionar ao Carrinho
             </button>
-            <button className="w-full py-4 border-2 border-[#f4d3d2] text-[#f4d3d2] rounded-lg font-bold text-lg hover:bg-[#f4d3d2] hover:text-white transition-all">
-              Comprar Agora
-            </button>
+            <a 
+              href={`https://wa.me/5571982331700?text=Olá! Tenho interesse no produto: ${product.name}`}
+              target="_blank"
+              className="w-full py-4 border-2 border-[#f4d3d2] text-[#f4d3d2] rounded-lg font-bold text-lg hover:bg-[#f4d3d2] hover:text-white transition-all text-center block"
+            >
+              Comprar via WhatsApp
+            </a>
           </div>
 
           {/* Benefits */}

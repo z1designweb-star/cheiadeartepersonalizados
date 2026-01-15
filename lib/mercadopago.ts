@@ -2,8 +2,7 @@
 /**
  * SERVIÇO DE INTEGRAÇÃO MERCADO PAGO
  * IMPORTANTE: Em um ambiente de produção real, as chamadas para api.mercadopago.com
- * devem ser feitas através de um backend (como Supabase Edge Functions) para manter 
- * o ACCESS_TOKEN seguro.
+ * devem ser feitas através de um backend para manter o ACCESS_TOKEN seguro.
  */
 
 const MP_ACCESS_TOKEN = (import.meta as any).env.VITE_MERCADO_PAGO_ACCESS_TOKEN || '';
@@ -40,15 +39,17 @@ export const createCheckoutPreference = async (items: PreferenceItem[]) => {
           picture_url: item.picture_url
         })),
         back_urls: {
+          // O Mercado Pago às vezes tem problemas com '#' no meio da URL.
+          // Usamos a URL base e deixamos o React Router tratar na volta.
           success: `${window.location.origin}/#/sucesso`,
           failure: `${window.location.origin}/#/erro`,
           pending: `${window.location.origin}/#/pendente`,
         },
-        auto_return: 'approved',
+        auto_return: 'approved', // Redireciona automaticamente se aprovado
         statement_descriptor: 'CHEIADEARTE',
         payment_methods: {
           excluded_payment_types: [
-            { id: 'ticket' } // Exemplo: Excluir boleto se desejar
+            { id: 'ticket' }
           ],
           installments: 12
         }
@@ -58,7 +59,7 @@ export const createCheckoutPreference = async (items: PreferenceItem[]) => {
     const data = await response.json();
     
     if (data.init_point) {
-      return data.init_point; // URL do Checkout Pro
+      return data.init_point;
     } else {
       throw new Error(data.message || "Erro ao criar preferência de pagamento.");
     }

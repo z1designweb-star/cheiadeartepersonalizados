@@ -1,9 +1,8 @@
 
-// Adicionando import de React para resolver erros de namespace 'React' (FC, FormEvent)
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase.ts';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 const AdminLogin: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -47,9 +46,13 @@ const AdminLogin: React.FC = () => {
           .single();
 
         if (profileError) {
-          console.error("Erro ao buscar perfil:", profileError);
-          // Se der erro 500 ou similar, é provável que faltem as políticas de RLS
-          throw new Error("Erro de permissão no banco de dados. Verifique se as políticas RLS foram configuradas no SQL Editor do Supabase.");
+          console.error("Erro Supabase Profile:", profileError);
+          
+          if (profileError.code === '42P17') {
+            throw new Error("Erro de recursão detectado. Por favor, execute o script SQL de correção no painel do Supabase.");
+          }
+          
+          throw new Error("Erro de permissão ao acessar seu perfil. Verifique o RLS no Supabase.");
         }
 
         if (profile?.is_approved) {
@@ -68,8 +71,6 @@ const AdminLogin: React.FC = () => {
       
       if (err.status === 400 || err.message?.includes('Invalid login credentials')) {
         errorText = "E-mail ou senha incorretos.";
-      } else if (err.message?.includes('Database error')) {
-        errorText = "Erro no banco de dados. Verifique as permissões RLS no Supabase.";
       }
 
       setMessage({ type: 'error', text: errorText });
@@ -121,9 +122,9 @@ const AdminLogin: React.FC = () => {
         </form>
 
         {message && (
-          <div className={`mt-6 p-4 rounded-lg flex items-start gap-3 ${message.type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
-            {message.type === 'error' ? <AlertCircle className="w-5 h-5 mt-0.5" /> : <CheckCircle2 className="w-5 h-5 mt-0.5" />}
-            <p className="text-sm font-medium">{message.text}</p>
+          <div className={`mt-6 p-4 rounded-lg flex items-start gap-3 ${message.type === 'error' ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-green-50 text-green-700 border border-green-100'}`}>
+            {message.type === 'error' ? <ShieldAlert className="w-5 h-5 mt-0.5" /> : <CheckCircle2 className="w-5 h-5 mt-0.5" />}
+            <p className="text-sm font-medium leading-relaxed">{message.text}</p>
           </div>
         )}
 

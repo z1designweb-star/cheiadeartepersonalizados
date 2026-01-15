@@ -6,10 +6,13 @@ import Footer from './components/Footer.tsx';
 import Home from './pages/Home.tsx';
 import Department from './pages/Department.tsx';
 import Product from './pages/Product.tsx';
-import CheckoutResult from './pages/CheckoutResult.tsx'; // Importando o novo componente unificado
+import CheckoutResult from './pages/CheckoutResult.tsx';
 import AdminLogin from './pages/Admin/Login.tsx';
 import AdminDashboard from './pages/Admin/Dashboard.tsx';
 import ProductForm from './pages/Admin/ProductForm.tsx';
+import Login from './pages/Auth/Login.tsx';
+import Signup from './pages/Auth/Signup.tsx';
+import ForgotPassword from './pages/Auth/ForgotPassword.tsx';
 import { CartProvider } from './context/CartContext.tsx';
 import CartSidebar from './components/CartSidebar.tsx';
 
@@ -25,6 +28,11 @@ const App: React.FC = () => {
               <Route path="/" element={<Home />} />
               <Route path="/departamento/:id" element={<Department />} />
               <Route path="/produto/:id" element={<Product />} />
+              
+              {/* Autenticação Clientes */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/cadastro" element={<Signup />} />
+              <Route path="/esqueci-senha" element={<ForgotPassword />} />
               
               {/* Rotas de Finalização Unificadas */}
               <Route path="/sucesso" element={<CheckoutResult />} />

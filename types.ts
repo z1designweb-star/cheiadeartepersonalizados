@@ -31,6 +31,17 @@ export interface Department {
 export interface Profile {
   id: string;
   email: string;
+  full_name?: string;
+  cpf?: string;
+  birth_date?: string;
+  phone?: string;
+  cep?: string;
+  address_street?: string;
+  address_number?: string;
+  address_complement?: string;
+  address_neighborhood?: string;
+  address_city?: string;
+  address_state?: string;
   is_approved: boolean;
   is_admin: boolean;
 }
@@ -44,4 +55,19 @@ export interface ShippingOption {
     name: string;
     picture: string;
   };
+}
+
+export interface Order {
+  id: string;
+  customer_id: string;
+  status: 'pending' | 'paid' | 'shipped' | 'cancelled';
+  total_amount: number;
+  shipping_cost: number;
+  shipping_method: string;
+  items: any[];
+  customer_email?: string;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_address?: string;
+  created_at: string;
 }

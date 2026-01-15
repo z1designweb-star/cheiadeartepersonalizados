@@ -1,22 +1,59 @@
 
-import React, { useState } from 'react';
-import { X, Trash2, ShoppingBag, Loader2, CreditCard, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Trash2, ShoppingBag, Loader2, CreditCard, ShieldCheck, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.tsx';
 import { createCheckoutPreference } from '../lib/mercadopago.ts';
 import { formatDriveUrl } from '../lib/utils.ts';
+import { supabase } from '../lib/supabase.ts';
 import ShippingCalculator from './ShippingCalculator.tsx';
 
 const CartSidebar: React.FC = () => {
-  const { cart, removeFromCart, cartTotal, isCartOpen, setIsCartOpen, cartCount, selectedShipping } = useCart();
+  const { cart, removeFromCart, cartTotal, isCartOpen, setIsCartOpen, cartCount, selectedShipping, destinationCep } = useCart();
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user || null);
+    };
+    checkUser();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const finalTotal = cartTotal + (selectedShipping?.price || 0);
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
+
+    if (!user) {
+      setIsCartOpen(false);
+      navigate('/login?redirect=cart');
+      return;
+    }
     
     setIsCheckoutLoading(true);
     try {
+      // Buscar dados completos do perfil do cliente
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.full_name || !profile?.cpf) {
+        alert("Por favor, complete seu cadastro antes de finalizar a compra.");
+        navigate('/perfil');
+        setIsCartOpen(false);
+        return;
+      }
+
       const items = cart.map(item => ({
         id: item.id,
         title: `${item.name}${item.selectedModel ? ` - ${item.selectedModel}` : ''}${item.selectedAroma ? ` (${item.selectedAroma})` : ''}`,
@@ -25,7 +62,6 @@ const CartSidebar: React.FC = () => {
         picture_url: formatDriveUrl(item.image_url)
       }));
 
-      // Adicionar frete como um item se selecionado
       if (selectedShipping) {
         items.push({
           id: 'shipping-fee',
@@ -36,9 +72,29 @@ const CartSidebar: React.FC = () => {
         });
       }
 
+      // Registrar o pedido no Supabase como pendente
+      const { data: order, error: orderError } = await supabase.from('orders').insert([{
+        customer_id: user.id,
+        status: 'pending',
+        total_amount: finalTotal,
+        shipping_cost: selectedShipping?.price || 0,
+        shipping_method: selectedShipping ? `${selectedShipping.company.name} - ${selectedShipping.name}` : 'A combinar',
+        items: cart.map(i => ({
+          id: i.id,
+          name: i.name,
+          model: i.selectedModel,
+          aroma: i.selectedAroma,
+          price: i.displayPrice,
+          quantity: i.quantity
+        }))
+      }]).select().single();
+
+      if (orderError) throw orderError;
+
       const checkoutUrl = await createCheckoutPreference(items);
       window.location.href = checkoutUrl;
     } catch (error) {
+      console.error(error);
       alert("Houve um erro ao processar o checkout. Tente novamente.");
     } finally {
       setIsCheckoutLoading(false);
@@ -58,9 +114,16 @@ const CartSidebar: React.FC = () => {
               <ShoppingBag className="w-5 h-5 text-[#f4d3d2]" />
               Sua Sacola ({cartCount})
             </h2>
-            <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <X className="w-6 h-6" />
-            </button>
+            <div className="flex items-center gap-2">
+              {user && (
+                <button onClick={() => { setIsCartOpen(false); navigate('/perfil'); }} className="p-2 hover:bg-gray-100 rounded-full">
+                  <User className="w-5 h-5 text-gray-400" />
+                </button>
+              )}
+              <button onClick={() => setIsCartOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
           </div>
 
           <div className="flex-grow overflow-y-auto p-6 space-y-6">
@@ -138,7 +201,7 @@ const CartSidebar: React.FC = () => {
                 ) : (
                   <>
                     <CreditCard className="w-5 h-5" />
-                    {!selectedShipping ? 'Selecione o Frete' : 'Pagar com Mercado Pago'}
+                    {!selectedShipping ? 'Selecione o Frete' : user ? 'Pagar com Mercado Pago' : 'Entrar para Comprar'}
                   </>
                 )}
               </button>

@@ -53,24 +53,19 @@ const Signup: React.FC = () => {
 
     try {
       // 1. Criar usuário no Auth
-      // Passamos os metadados para garantir que fiquem registrados no Auth também
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.full_name,
-          }
-        }
+        password: formData.password
       });
 
       if (authError) throw authError;
-      if (!authData.user) throw new Error("Erro ao criar usuário.");
+      if (!authData.user) throw new Error("Erro ao criar credenciais.");
 
-      // Pequena pausa para o banco processar a autenticação
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Pequena pausa para garantir que o trigger do Supabase (se houver) não conflite
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      // 2. Criar ou atualizar perfil no DB (profiles)
+      // 2. Gravar os dados detalhados na tabela Profiles
+      // Usamos .upsert para garantir que se a linha já existir (criada por trigger), ela seja preenchida
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: authData.user.id,
         email: formData.email,
@@ -90,14 +85,15 @@ const Signup: React.FC = () => {
       }, { onConflict: 'id' });
 
       if (profileError) {
-        console.error("Erro detalhado no Profile:", profileError);
-        throw new Error("Sua conta foi criada, mas houve um erro ao salvar seus dados. Por favor, tente fazer login e completar seu perfil.");
+        console.error("Erro no profile:", profileError);
+        throw new Error("Conta criada, mas houve um erro ao salvar seus dados de endereço. Tente fazer login e completar o perfil.");
       }
 
-      alert("Conta criada com sucesso!");
+      alert("Cadastro realizado com sucesso!");
       navigate('/login');
     } catch (err: any) {
-      setError(err.message);
+      console.error("Erro geral no cadastro:", err);
+      setError(err.message || "Erro inesperado ao realizar cadastro.");
     } finally {
       setLoading(false);
     }
@@ -116,7 +112,6 @@ const Signup: React.FC = () => {
         </div>
 
         <form onSubmit={handleSignup} className="space-y-8">
-          {/* Dados Pessoais */}
           <section className="space-y-4">
             <h3 className="text-sm font-bold text-[#f4d3d2] uppercase tracking-widest border-b border-gray-100 pb-2">Informações Pessoais</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -139,7 +134,6 @@ const Signup: React.FC = () => {
             </div>
           </section>
 
-          {/* Endereço */}
           <section className="space-y-4">
             <h3 className="text-sm font-bold text-[#f4d3d2] uppercase tracking-widest border-b border-gray-100 pb-2">Endereço de Entrega</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -174,7 +168,6 @@ const Signup: React.FC = () => {
             </div>
           </section>
 
-          {/* Acesso */}
           <section className="space-y-4">
             <h3 className="text-sm font-bold text-[#f4d3d2] uppercase tracking-widest border-b border-gray-100 pb-2">Dados de Acesso</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

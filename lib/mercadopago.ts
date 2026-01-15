@@ -39,13 +39,11 @@ export const createCheckoutPreference = async (items: PreferenceItem[]) => {
           picture_url: item.picture_url
         })),
         back_urls: {
-          // O Mercado Pago às vezes tem problemas com '#' no meio da URL.
-          // Usamos a URL base e deixamos o React Router tratar na volta.
           success: `${window.location.origin}/#/sucesso`,
           failure: `${window.location.origin}/#/erro`,
           pending: `${window.location.origin}/#/pendente`,
         },
-        auto_return: 'approved', // Redireciona automaticamente se aprovado
+        auto_return: 'approved',
         statement_descriptor: 'CHEIADEARTE',
         payment_methods: {
           excluded_payment_types: [

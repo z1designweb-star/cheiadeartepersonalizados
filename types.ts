@@ -34,3 +34,14 @@ export interface Profile {
   is_approved: boolean;
   is_admin: boolean;
 }
+
+export interface ShippingOption {
+  id: number;
+  name: string;
+  price: number;
+  delivery_time: number;
+  company: {
+    name: string;
+    picture: string;
+  };
+}

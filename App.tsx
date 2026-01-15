@@ -6,7 +6,7 @@ import Footer from './components/Footer.tsx';
 import Home from './pages/Home.tsx';
 import Department from './pages/Department.tsx';
 import Product from './pages/Product.tsx';
-import Success from './pages/Success.tsx'; // Importando a nova página
+import CheckoutResult from './pages/CheckoutResult.tsx'; // Importando o novo componente unificado
 import AdminLogin from './pages/Admin/Login.tsx';
 import AdminDashboard from './pages/Admin/Dashboard.tsx';
 import ProductForm from './pages/Admin/ProductForm.tsx';
@@ -26,10 +26,10 @@ const App: React.FC = () => {
               <Route path="/departamento/:id" element={<Department />} />
               <Route path="/produto/:id" element={<Product />} />
               
-              {/* Rotas de Finalização */}
-              <Route path="/sucesso" element={<Success />} />
-              <Route path="/erro" element={<div className="p-20 text-center font-serif text-3xl text-red-500">Houve um problema no pagamento.</div>} />
-              <Route path="/pendente" element={<div className="p-20 text-center font-serif text-3xl text-yellow-500">Seu pagamento está em análise.</div>} />
+              {/* Rotas de Finalização Unificadas */}
+              <Route path="/sucesso" element={<CheckoutResult />} />
+              <Route path="/erro" element={<CheckoutResult />} />
+              <Route path="/pendente" element={<CheckoutResult />} />
 
               {/* Rotas Administrativas */}
               <Route path="/admin" element={<AdminLogin />} />

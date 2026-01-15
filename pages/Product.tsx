@@ -4,6 +4,7 @@ import { useParams, Link } from 'react-router-dom';
 import { DEPARTMENTS } from '../constants.tsx';
 import { Product as ProductType } from '../types.ts';
 import { supabase } from '../lib/supabase.ts';
+import { formatDriveUrl } from '../lib/utils.ts';
 import { ChevronRight, Home, ShieldCheck, Truck, RefreshCcw, Loader2 } from 'lucide-react';
 
 const Product: React.FC = () => {
@@ -35,7 +36,10 @@ const Product: React.FC = () => {
 
   if (loading) return (
     <div className="min-h-[60vh] flex items-center justify-center">
-      <Loader2 className="w-12 h-12 animate-spin text-[#f4d3d2]" />
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="w-12 h-12 animate-spin text-[#f4d3d2]" />
+        <p className="text-gray-400 font-serif">Buscando detalhes...</p>
+      </div>
     </div>
   );
 
@@ -56,11 +60,14 @@ const Product: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* Gallery */}
-        <div className="rounded-xl overflow-hidden bg-gray-50 aspect-square shadow-inner">
+        <div className="rounded-xl overflow-hidden bg-gray-50 aspect-square shadow-inner flex items-center justify-center border border-gray-100">
           <img 
-            src={product.image_url} 
+            src={formatDriveUrl(product.image_url)} 
             alt={product.name} 
             className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = 'https://placehold.co/800x800?text=Erro+ao+carregar+imagem+do+Drive';
+            }}
           />
         </div>
 

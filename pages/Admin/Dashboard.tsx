@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase.ts';
 import { Product, Profile } from '../../types.ts';
 import { Link, useNavigate } from 'react-router-dom';
+import { formatDriveUrl } from '../../lib/utils.ts';
 import { Edit, Trash2, Plus, Users, Package, LogOut, CheckCircle } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
@@ -57,7 +58,7 @@ const AdminDashboard: React.FC = () => {
     navigate('/admin/login');
   };
 
-  if (loading) return <div className="p-20 text-center">Carregando...</div>;
+  if (loading) return <div className="p-20 text-center font-serif text-xl animate-pulse">Carregando painel...</div>;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -78,42 +79,50 @@ const AdminDashboard: React.FC = () => {
             <h2 className="text-2xl font-serif font-bold flex items-center">
               <Package className="mr-3 text-[#f4d3d2]" /> Produtos ({products.length})
             </h2>
-            <Link to="/admin/produtos/novo" className="bg-[#f4d3d2] text-white px-4 py-2 rounded-lg flex items-center font-bold hover:bg-[#e6c1c0]">
+            <Link to="/admin/produtos/novo" className="bg-[#f4d3d2] text-white px-4 py-2 rounded-lg flex items-center font-bold hover:bg-[#e6c1c0] transition-colors">
               <Plus className="w-4 h-4 mr-2" /> Novo Produto
             </Link>
           </div>
 
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider">
-                <tr>
-                  <th className="px-6 py-4">Produto</th>
-                  <th className="px-6 py-4">Depto</th>
-                  <th className="px-6 py-4">Preço</th>
-                  <th className="px-6 py-4 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {products.map(product => (
-                  <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 flex items-center">
-                      <img src={product.image_url} className="w-10 h-10 rounded object-cover mr-4" />
-                      <span className="font-medium text-gray-900">{product.name}</span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 text-sm">{product.department_id}</td>
-                    <td className="px-6 py-4 font-bold text-gray-800">R$ {product.price.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-right space-x-3">
-                      <Link to={`/admin/produtos/editar/${product.id}`} className="text-blue-400 hover:text-blue-600 inline-block">
-                        <Edit className="w-4 h-4" />
-                      </Link>
-                      <button onClick={() => deleteProduct(product.id)} className="text-red-400 hover:text-red-600">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider">
+                  <tr>
+                    <th className="px-6 py-4">Produto</th>
+                    <th className="px-6 py-4">Depto</th>
+                    <th className="px-6 py-4">Preço</th>
+                    <th className="px-6 py-4 text-right">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {products.map(product => (
+                    <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4 flex items-center">
+                        <img 
+                          src={formatDriveUrl(product.image_url)} 
+                          className="w-12 h-12 rounded object-cover mr-4 bg-gray-100 border border-gray-100" 
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://placehold.co/100x100?text=Error';
+                          }}
+                        />
+                        <span className="font-medium text-gray-900">{product.name}</span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-500 text-sm">{product.department_id}</td>
+                      <td className="px-6 py-4 font-bold text-gray-800">R$ {product.price.toFixed(2)}</td>
+                      <td className="px-6 py-4 text-right space-x-3">
+                        <Link to={`/admin/produtos/editar/${product.id}`} className="text-blue-400 hover:text-blue-600 inline-block p-2">
+                          <Edit className="w-4 h-4" />
+                        </Link>
+                        <button onClick={() => deleteProduct(product.id)} className="text-red-400 hover:text-red-600 p-2">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -121,18 +130,19 @@ const AdminDashboard: React.FC = () => {
         <div className="space-y-8">
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-2xl font-serif font-bold mb-6 flex items-center">
-              <Users className="mr-3 text-[#f4d3d2]" /> Pendentes
+              <Users className="mr-3 text-[#f4d3d2]" /> Acessos Pendentes
             </h2>
             {pendingUsers.length === 0 ? (
-              <p className="text-gray-400 italic text-sm">Nenhum usuário aguardando aprovação.</p>
+              <p className="text-gray-400 italic text-sm text-center py-4">Tudo em dia!</p>
             ) : (
               <div className="space-y-4">
                 {pendingUsers.map(user => (
-                  <div key={user.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                    <span className="text-sm truncate mr-2" title={user.email}>{user.email}</span>
+                  <div key={user.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <span className="text-sm truncate mr-2 font-medium" title={user.email}>{user.email}</span>
                     <button 
                       onClick={() => approveUser(user.id)}
                       className="text-green-500 hover:text-green-700 p-1"
+                      title="Aprovar usuário"
                     >
                       <CheckCircle className="w-6 h-6" />
                     </button>

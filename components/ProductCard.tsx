@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Product } from '../types';
+import { formatDriveUrl } from '../lib/utils.ts';
 
 interface ProductCardProps {
   product: Product;
@@ -11,11 +12,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <div className="group relative bg-white">
       <Link to={`/produto/${product.id}`} className="block overflow-hidden rounded-lg aspect-[4/5] bg-gray-100">
-        {/* Fix: Using image_url instead of image to match Product interface */}
         <img
-          src={product.image_url}
+          src={formatDriveUrl(product.image_url)}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://placehold.co/400x500?text=Imagem+indisponível';
+          }}
         />
       </Link>
       <div className="mt-4 flex flex-col items-center">

@@ -1,8 +1,6 @@
 
 /**
  * SERVIÇO DE INTEGRAÇÃO MERCADO PAGO
- * IMPORTANTE: Em um ambiente de produção real, as chamadas para api.mercadopago.com
- * devem ser feitas através de um backend para manter o ACCESS_TOKEN seguro.
  */
 
 const MP_ACCESS_TOKEN = (import.meta as any).env.VITE_MERCADO_PAGO_ACCESS_TOKEN || '';
@@ -16,7 +14,7 @@ export interface PreferenceItem {
   picture_url?: string;
 }
 
-export const createCheckoutPreference = async (items: PreferenceItem[]) => {
+export const createCheckoutPreference = async (items: PreferenceItem[], orderId: string) => {
   if (!MP_ACCESS_TOKEN) {
     throw new Error("Token de acesso do Mercado Pago não configurado.");
   }
@@ -38,6 +36,7 @@ export const createCheckoutPreference = async (items: PreferenceItem[]) => {
           description: item.description,
           picture_url: item.picture_url
         })),
+        external_reference: orderId, // VINCULA O PEDIDO
         back_urls: {
           success: `${window.location.origin}/#/sucesso`,
           failure: `${window.location.origin}/#/erro`,
@@ -46,21 +45,15 @@ export const createCheckoutPreference = async (items: PreferenceItem[]) => {
         auto_return: 'approved',
         statement_descriptor: 'CHEIADEARTE',
         payment_methods: {
-          excluded_payment_types: [
-            { id: 'ticket' }
-          ],
+          excluded_payment_types: [{ id: 'ticket' }],
           installments: 12
         }
       }),
     });
 
     const data = await response.json();
-    
-    if (data.init_point) {
-      return data.init_point;
-    } else {
-      throw new Error(data.message || "Erro ao criar preferência de pagamento.");
-    }
+    if (data.init_point) return data.init_point;
+    throw new Error(data.message || "Erro ao criar preferência.");
   } catch (error) {
     console.error("Erro Mercado Pago:", error);
     throw error;

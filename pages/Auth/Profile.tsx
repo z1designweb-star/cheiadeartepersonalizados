@@ -1,120 +1,119 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase.ts';
-import { Profile as ProfileType } from '../../types.ts';
+import { Profile as ProfileType, Order } from '../../types.ts';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, MapPin, Phone, Mail, LogOut, ArrowLeft, Loader2, Package } from 'lucide-react';
+import { User, MapPin, Phone, Mail, LogOut, ArrowLeft, Loader2, Package, CheckCircle, Clock } from 'lucide-react';
 
 const Profile: React.FC = () => {
   const [profile, setProfile] = useState<ProfileType | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileData = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-        return;
-      }
+      if (!session) { navigate('/login'); return; }
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      const [profData, ordersData] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+        supabase.from('orders').select('*').eq('customer_id', session.user.id).order('created_at', { ascending: false })
+      ]);
 
-      if (data) setProfile(data);
+      if (profData.data) setProfile(profData.data);
+      if (ordersData.data) setOrders(ordersData.data);
       setLoading(false);
     };
 
-    fetchProfile();
+    fetchProfileData();
   }, [navigate]);
 
-  if (loading) return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <Loader2 className="w-10 h-10 animate-spin text-[#f4d3d2]" />
-    </div>
-  );
+  if (loading) return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-[#f4d3d2]" /></div>;
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-4xl">
+    <div className="container mx-auto px-4 py-12 max-w-5xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
         <div>
           <Link to="/" className="inline-flex items-center text-sm text-gray-400 hover:text-[#f4d3d2] mb-4">
             <ArrowLeft className="w-4 h-4 mr-1" /> Voltar para a loja
           </Link>
           <h1 className="text-4xl font-serif font-bold text-gray-900">Olá, {profile?.full_name?.split(' ')[0]}!</h1>
-          <p className="text-gray-500">Bem-vinda à sua área exclusiva.</p>
         </div>
-        <button 
-          onClick={() => supabase.auth.signOut().then(() => navigate('/'))}
-          className="flex items-center gap-2 px-6 py-3 border-2 border-red-50 rounded-2xl text-red-500 font-bold hover:bg-red-50 transition-all"
-        >
+        <button onClick={() => supabase.auth.signOut().then(() => navigate('/'))} className="flex items-center gap-2 px-6 py-3 border border-red-100 rounded-2xl text-red-500 font-bold hover:bg-red-50">
           <LogOut className="w-5 h-5" /> Sair
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Informações Pessoais */}
-        <div className="md:col-span-2 space-y-6">
-          <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
-            <h2 className="text-xl font-serif font-bold flex items-center gap-2">
-              <User className="w-5 h-5 text-[#f4d3d2]" /> Seus Dados
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          {/* Histórico de Pedidos Real */}
+          <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+            <h2 className="text-xl font-serif font-bold flex items-center gap-2 mb-6">
+              <Package className="w-5 h-5 text-[#f4d3d2]" /> Meus Pedidos
             </h2>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Nome Completo</p>
-                <p className="text-gray-900 font-medium">{profile?.full_name}</p>
+            {orders.length === 0 ? (
+              <div className="text-center py-10 text-gray-400 italic">Você ainda não realizou compras.</div>
+            ) : (
+              <div className="space-y-4">
+                {orders.map(order => (
+                  <div key={order.id} className="border border-gray-50 rounded-2xl p-6 bg-gray-50/30">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase">Pedido #{order.id.slice(0,8)}</p>
+                        <p className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString('pt-BR')}</p>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        order.status === 'paid' ? 'bg-green-100 text-green-600' : 
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {order.status === 'paid' ? 'Pago' : order.status === 'pending' ? 'Pendente' : order.status}
+                      </div>
+                    </div>
+                    <div className="space-y-1 mb-4">
+                      {order.items.map((item: any, i: number) => (
+                        <p key={i} className="text-xs text-gray-700">{item.quantity}x {item.name}</p>
+                      ))}
+                    </div>
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                      <span className="text-xs text-gray-400">{order.shipping_method}</span>
+                      <span className="font-bold text-gray-900">{order.total_amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">CPF</p>
-                <p className="text-gray-900 font-medium">{profile?.cpf}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">E-mail</p>
-                <div className="flex items-center gap-2 text-gray-900 font-medium">
-                  <Mail className="w-4 h-4 text-gray-300" /> {profile?.email}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Telefone</p>
-                <div className="flex items-center gap-2 text-gray-900 font-medium">
-                  <Phone className="w-4 h-4 text-gray-300" /> {profile?.phone}
-                </div>
-              </div>
-            </div>
+            )}
           </section>
 
           <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
             <h2 className="text-xl font-serif font-bold flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-[#f4d3d2]" /> Endereço de Entrega
+              <MapPin className="w-5 h-5 text-[#f4d3d2]" /> Endereço Salvo
             </h2>
-            
-            <div className="space-y-4">
-              <p className="text-gray-900 leading-relaxed">
-                {profile?.address_street}, {profile?.address_number} {profile?.address_complement && `- ${profile?.address_complement}`} <br/>
-                {profile?.address_neighborhood} • {profile?.address_city}/{profile?.address_state} <br/>
-                <span className="font-bold text-[#f4d3d2]">{profile?.cep}</span>
-              </p>
-            </div>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              {profile?.address_street}, {profile?.address_number} - {profile?.address_neighborhood}<br/>
+              {profile?.address_city}/{profile?.address_state} - CEP: {profile?.cep}
+            </p>
           </section>
         </div>
 
-        {/* Sidebar de Ações */}
         <div className="space-y-6">
-          <div className="bg-[#f4d3d2] p-8 rounded-3xl text-white shadow-lg shadow-[#f4d3d2]/20">
-            <Package className="w-10 h-10 mb-4 opacity-50" />
-            <h3 className="text-xl font-serif font-bold mb-2">Meus Pedidos</h3>
-            <p className="text-sm opacity-80 mb-6">Acompanhe o status de suas compras artesanais.</p>
-            <button className="w-full py-3 bg-white text-[#f4d3d2] rounded-xl font-bold text-sm shadow-sm hover:scale-105 transition-all">
-              Ver Histórico
-            </button>
+          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-serif font-bold mb-4">Dados da Conta</h3>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <Mail className="w-4 h-4 text-[#f4d3d2]" /> {profile?.email}
+              </div>
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <Phone className="w-4 h-4 text-[#f4d3d2]" /> {profile?.phone}
+              </div>
+              <div className="flex items-center gap-3 text-sm text-gray-600">
+                <User className="w-4 h-4 text-[#f4d3d2]" /> {profile?.cpf}
+              </div>
+            </div>
           </div>
-
-          <div className="p-6 bg-gray-50 rounded-3xl border border-dashed border-gray-200 text-center">
-            <p className="text-xs text-gray-400 font-medium">Precisa alterar algum dado? Entre em contato pelo nosso WhatsApp.</p>
+          <div className="p-6 bg-[#f4d3d2]/5 rounded-3xl border border-dashed border-[#f4d3d2]/20 text-center">
+            <p className="text-xs text-gray-500">Dúvidas sobre seu pedido? Chame no WhatsApp.</p>
           </div>
         </div>
       </div>

@@ -3,31 +3,50 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase.ts';
 import { Profile as ProfileType, Order } from '../../types.ts';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, MapPin, Phone, Mail, LogOut, ArrowLeft, Loader2, Package, CheckCircle, Clock } from 'lucide-react';
+import { User, MapPin, Phone, Mail, LogOut, ArrowLeft, Loader2, Package, CheckCircle, Clock, RefreshCw } from 'lucide-react';
 
 const Profile: React.FC = () => {
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const fetchProfileData = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { navigate('/login'); return; }
+
+    const [profData, ordersData] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', session.user.id).single(),
+      supabase.from('orders').select('*').eq('customer_id', session.user.id).order('created_at', { ascending: false })
+    ]);
+
+    if (profData.data) setProfile(profData.data);
+    if (ordersData.data) setOrders(ordersData.data);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchProfileData = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate('/login'); return; }
-
-      const [profData, ordersData] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', session.user.id).single(),
-        supabase.from('orders').select('*').eq('customer_id', session.user.id).order('created_at', { ascending: false })
-      ]);
-
-      if (profData.data) setProfile(profData.data);
-      if (ordersData.data) setOrders(ordersData.data);
-      setLoading(false);
-    };
-
     fetchProfileData();
   }, [navigate]);
+
+  // Função para o cliente "forçar" uma atualização de status se ele souber que pagou
+  const handleRefreshStatus = async (orderId: string) => {
+    setUpdatingId(orderId);
+    // Como não temos um backend para validar o token do MP agora,
+    // simulamos uma verificação. Em um cenário real, você integraria um Webhook.
+    // Para este MVP, permitimos que o usuário marque como pago se ele clicar aqui,
+    // o que facilita sua gestão manual no admin.
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: 'paid' })
+      .eq('id', orderId);
+    
+    if (!error) {
+      await fetchProfileData();
+    }
+    setUpdatingId(null);
+  };
 
   if (loading) return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-[#f4d3d2]" /></div>;
 
@@ -47,7 +66,6 @@ const Profile: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
-          {/* Histórico de Pedidos Real */}
           <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
             <h2 className="text-xl font-serif font-bold flex items-center gap-2 mb-6">
               <Package className="w-5 h-5 text-[#f4d3d2]" /> Meus Pedidos
@@ -64,11 +82,23 @@ const Profile: React.FC = () => {
                         <p className="text-[10px] font-bold text-gray-400 uppercase">Pedido #{order.id.slice(0,8)}</p>
                         <p className="text-sm text-gray-500">{new Date(order.created_at).toLocaleDateString('pt-BR')}</p>
                       </div>
-                      <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        order.status === 'paid' ? 'bg-green-100 text-green-600' : 
-                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {order.status === 'paid' ? 'Pago' : order.status === 'pending' ? 'Pendente' : order.status}
+                      <div className="flex flex-col items-end gap-2">
+                        <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          order.status === 'paid' ? 'bg-green-100 text-green-600' : 
+                          order.status === 'pending' ? 'bg-yellow-100 text-yellow-600' : 'bg-gray-100 text-gray-600'
+                        }`}>
+                          {order.status === 'paid' ? 'Pago' : order.status === 'pending' ? 'Pendente' : order.status}
+                        </div>
+                        {order.status === 'pending' && (
+                          <button 
+                            onClick={() => handleRefreshStatus(order.id)}
+                            disabled={updatingId === order.id}
+                            className="text-[9px] font-bold text-[#f4d3d2] hover:text-[#e6c1c0] flex items-center gap-1 uppercase tracking-tighter"
+                          >
+                            {updatingId === order.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                            Já paguei / Atualizar
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="space-y-1 mb-4">

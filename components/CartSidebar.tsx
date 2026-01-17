@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Trash2, ShoppingBag, Loader2, CreditCard, ShieldCheck, User } from 'lucide-react';
+import { X, Trash2, ShoppingBag, Loader2, CreditCard, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext.tsx';
 import { createCheckoutPreference } from '../lib/mercadopago.ts';
@@ -34,14 +34,14 @@ const CartSidebar: React.FC = () => {
     try {
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
 
-      if (!profile?.full_name || !profile?.cpf) {
-        alert("Por favor, complete seu cadastro no perfil antes de comprar.");
+      if (!profile?.full_name || !profile?.cpf || !profile?.cep) {
+        alert("Por favor, complete seu cadastro no perfil com endereço e CPF antes de comprar.");
         navigate('/perfil');
         setIsCartOpen(false);
         return;
       }
 
-      // 1. Criar pedido no Supabase primeiro
+      // 1. Criar pedido no Supabase
       const { data: order, error: orderError } = await supabase.from('orders').insert([{
         customer_id: user.id,
         status: 'pending',
@@ -60,7 +60,7 @@ const CartSidebar: React.FC = () => {
 
       if (orderError) throw orderError;
 
-      // 2. Criar preferência no Mercado Pago enviando o ID do pedido
+      // 2. Preparar itens para o Mercado Pago
       const items = cart.map(item => ({
         id: item.id,
         title: `${item.name}${item.selectedModel ? ` - ${item.selectedModel}` : ''}`,
@@ -69,7 +69,7 @@ const CartSidebar: React.FC = () => {
         picture_url: formatDriveUrl(item.image_url)
       }));
 
-      if (selectedShipping) {
+      if (selectedShipping && selectedShipping.price > 0) {
         items.push({
           id: 'frete',
           title: `Frete: ${selectedShipping.name}`,
@@ -78,7 +78,19 @@ const CartSidebar: React.FC = () => {
         });
       }
 
-      const checkoutUrl = await createCheckoutPreference(items, order.id);
+      // 3. Criar preferência incluindo dados do Payer (Comprador)
+      const checkoutUrl = await createCheckoutPreference(items, order.id, {
+        email: user.email,
+        full_name: profile.full_name,
+        cpf: profile.cpf,
+        phone: profile.phone || '',
+        address: {
+          zip_code: profile.cep,
+          street_name: profile.address_street || '',
+          street_number: profile.address_number || ''
+        }
+      });
+
       window.location.href = checkoutUrl;
     } catch (error: any) {
       alert("Erro ao processar: " + error.message);

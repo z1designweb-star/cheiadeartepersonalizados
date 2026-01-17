@@ -14,10 +14,27 @@ export interface PreferenceItem {
   picture_url?: string;
 }
 
-export const createCheckoutPreference = async (items: PreferenceItem[], orderId: string) => {
+export interface PayerData {
+  email: string;
+  full_name: string;
+  cpf: string;
+  phone: string;
+  address: {
+    zip_code: string;
+    street_name: string;
+    street_number: string;
+  };
+}
+
+export const createCheckoutPreference = async (items: PreferenceItem[], orderId: string, payer: PayerData) => {
   if (!MP_ACCESS_TOKEN) {
     throw new Error("Token de acesso do Mercado Pago não configurado.");
   }
+
+  // Separar nome e sobrenome
+  const nameParts = payer.full_name.trim().split(' ');
+  const firstName = nameParts[0];
+  const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : 'Artesanatos';
 
   try {
     const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -36,7 +53,21 @@ export const createCheckoutPreference = async (items: PreferenceItem[], orderId:
           description: item.description,
           picture_url: item.picture_url
         })),
-        external_reference: orderId, // VINCULA O PEDIDO
+        payer: {
+          name: firstName,
+          surname: lastName,
+          email: payer.email,
+          identification: {
+            type: 'CPF',
+            number: payer.cpf.replace(/\D/g, '')
+          },
+          address: {
+            zip_code: payer.address.zip_code.replace(/\D/g, ''),
+            street_name: payer.address.street_name,
+            street_number: parseInt(payer.address.street_number) || 0
+          }
+        },
+        external_reference: orderId,
         back_urls: {
           success: `${window.location.origin}/#/sucesso`,
           failure: `${window.location.origin}/#/erro`,
